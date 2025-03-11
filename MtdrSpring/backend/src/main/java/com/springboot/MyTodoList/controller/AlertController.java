@@ -76,4 +76,14 @@ public class AlertController {
             return new ResponseEntity<>(flag, HttpStatus.NOT_FOUND);
         }
     }
+
+    public AlertController(AlertService alertService) {
+        this.alertService = alertService;
+    }
+
+    @PostMapping("/send")
+    public ResponseEntity<String> sendPendingAlerts() {
+        alertService.sendScheduledAlerts();
+        return ResponseEntity.ok("Alertas enviadas correctamente");
+    }
 }

@@ -6,6 +6,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -14,6 +22,40 @@ public class AlertService {
 
     @Autowired
     private AlertRepository alertRepository;
+    private final RestTemplate restTemplate = new RestTemplate();
+    
+    @Value("${telegram.bot.token}")
+    private String botToken;
+
+    private final Map<String, String> userChatIds = new HashMap<>();
+
+    public AlertService(AlertRepository alertRepository) {
+        this.alertRepository = alertRepository;
+        // Datos de ejemplo: userId -> chatId de Telegram
+        userChatIds.put("12345", "6458756980"); // Reemplázalo con datos reales
+    }
+
+    @Scheduled(fixedRate = 3600000) // Ejecuta cada hora
+    public void sendScheduledAlerts() {
+        List<Alert> pendingAlerts = alertRepository.findByStatus("PENDING");
+        for (Alert alert : pendingAlerts) {
+            sendNotification(alert);
+            alert.setStatus("SENT");
+            alertRepository.save(alert);
+        }
+    }
+
+    private void sendNotification(Alert alert) {
+        String chatId = userChatIds.get(alert.getUserId());
+        if (chatId == null) {
+            System.out.println("No se encontró chatId para userId: " + alert.getUserId());
+            return;
+        }
+
+        String message = "Tienes una nueva tarea asignada: " + alert.getMessage();
+        String url = "https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + message;
+        restTemplate.getForObject(url, String.class);
+    }
 
     // Method to create an alert
     public Alert createAlert(String message, Long taskId, String task, Long projectId, String userId, String priority, OffsetDateTime scheduledTime) {
@@ -45,19 +87,6 @@ public class AlertService {
         return alertRepository.findOverdueAlerts(OffsetDateTime.now());
     }
 
-    // Method to send scheduled alerts periodically (every hour)
-    @Scheduled(cron = "0 0 * * * ?")  // Run every hour
-    public void sendScheduledAlerts() {
-        List<Alert> alertsToSend = alertRepository.findByStatus("PENDING");
-        for (Alert alert : alertsToSend) {
-            if (alert.getScheduledTime().isBefore(OffsetDateTime.now())) {
-                sendNotification(alert);  // Send the notification to the user
-                alert.setStatus("SENT");
-                alertRepository.save(alert);  // Update the alert status to "SENT"
-            }
-        }
-    }
-
     // Method to update the alert status (e.g., SENT or CANCELLED)
     public Alert updateAlertStatus(Long id, String status) throws Exception {
         Alert alert = alertRepository.findById(id).orElseThrow(() -> new Exception("Alert not found"));
@@ -65,13 +94,6 @@ public class AlertService {
         return alertRepository.save(alert);
     }
     
-
-    // Helper method to send the notification (this can be integrated with Telegram, Email, etc.)
-    private void sendNotification(Alert alert) {
-        // Logic to send the notification (e.g., via Telegram bot or email)
-        System.out.println("Sending notification to user: " + alert.getUserId() + " with message: " + alert.getMessage());
-        // You can replace the above with actual notification sending logic
-    }
 
     public Boolean deleteAlert(Long id) {
         try {
