@@ -38,21 +38,34 @@ public class AlertController {
         }
     }
 
-    // Create a new alert
     @PostMapping
     public ResponseEntity<Void> addAlert(@RequestBody Alert alert) throws Exception {
-        Alert createdAlert = alertService.createAlert(alert.getMessage(), alert.getTaskId(),
-                alert.getTask(), alert.getProjectId(), alert.getUserId(), alert.getPriority(),
-                alert.getScheduledTime());
+    // Crear la alerta y guardarla en la base de datos
+    Alert createdAlert = alertService.createAlert(
+        alert.getMessage(), 
+        alert.getTaskId(),
+        alert.getTask(),
+        alert.getProjectId(),
+        alert.getUserId(),
+        alert.getPriority(),
+        alert.getScheduledTime()
+    );
 
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.set("Location", "/alerts/" + createdAlert.getId());
-        responseHeaders.set("Access-Control-Expose-Headers", "location");
+    // Enviar la notificación a Telegram inmediatamente después de crear la alerta
+    alertService.sendNotification(createdAlert);  // Llamamos a sendNotification directamente
 
-        return ResponseEntity.created(URI.create("/alerts/" + createdAlert.getId()))
-                .headers(responseHeaders)
-                .build();
-    }
+    // Crear los encabezados de la respuesta con la ubicación del nuevo recurso
+    HttpHeaders responseHeaders = new HttpHeaders();
+    responseHeaders.set("Location", "/alerts/" + createdAlert.getId());
+    responseHeaders.set("Access-Control-Expose-Headers", "location");
+
+    // Retornar una respuesta 201 CREATED con los encabezados apropiados
+    return ResponseEntity.created(URI.create("/alerts/" + createdAlert.getId()))
+            .headers(responseHeaders)
+            .build();
+}
+
+
 
     // Update an existing alert
     @PutMapping("/{id}")
