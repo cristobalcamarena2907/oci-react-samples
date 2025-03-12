@@ -14,7 +14,7 @@ import React, { useState, useEffect } from 'react';
 import NewItem from './NewItem';
 import API_LIST from './API';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { Button, TableBody, CircularProgress } from '@mui/material';
+import { Button, TableBody, CircularProgress, TextField, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
 import Moment from 'react-moment';
 
 /* In this application we're using Function Components with the State Hooks
@@ -35,6 +35,11 @@ function App() {
     const [items, setItems] = useState([]);
     // In case of an error during the API call:
     const [error, setError] = useState();
+
+    const [isFormVisible, setFormVisible] = useState(false);
+    const [task, setTask] = useState("");
+    const [description, setDescription] = useState("");
+    const [priority, setPriority] = useState("media");
 
     function deleteItem(deleteId) {
       // console.log("deleteItem("+deleteId+")")
@@ -183,9 +188,47 @@ function App() {
         }
       );
     }
+    function handleSubmit(event) {
+      event.preventDefault();
+      if (!task.trim() || !description.trim()) return;
+
+      const data = {
+          tarea: task,
+          descripcion: description,
+          prioridad: priority
+      };
+
+      setLoading(true);
+      fetch("URL_DEL_CHATBOT", { // 🔹 Reemplaza con la URL de tu chatbot
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+      })
+      .then(response => {
+          if (!response.ok) {
+              throw new Error("Error al enviar mensaje");
+          }
+          return response.json();
+      })
+      .then(result => {
+          console.log("Mensaje enviado:", result);
+          setTask("");
+          setDescription("");
+          setPriority("media");
+          setFormVisible(false); // Oculta el formulario tras el envío
+      })
+      .catch(error => {
+          console.error("Error:", error);
+          setError(error);
+      })
+      .finally(() => setLoading(false));
+    }
     return (
-      <div className="App">
-        <h1>MY TODO LIST</h1>
+        
+    <div className="App" style={{ textAlign: "center", marginTop: "20px" }}>
+          <h1>MY TODO LIST</h1>
         <NewItem addItem={addItem} isInserting={isInserting}/>
         { error &&
           <p>Error: {error.message}</p>
@@ -233,8 +276,51 @@ function App() {
         </table>
         </div>
         }
+            {isFormVisible && (
+                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", maxWidth: "400px", margin: "0 auto" }}>
+                    <TextField 
+                        label="Tarea"
+                        value={task}
+                        onChange={(e) => setTask(e.target.value)}
+                        fullWidth
+                        required
+                    />
+                    <TextField 
+                        label="Descripción"
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        fullWidth
+                        required
+                    />
+                    <FormControl fullWidth>
+                        <InputLabel>Prioridad</InputLabel>
+                        <Select
+                            value={priority}
+                            onChange={(e) => setPriority(e.target.value)}
+                        >
+                            <MenuItem value="alta">Alta</MenuItem>
+                            <MenuItem value="media">Media</MenuItem>
+                            <MenuItem value="baja">Baja</MenuItem>
+                        </Select>
+                    </FormControl>
+                    <Button type="submit" variant="contained" color="primary">
+                        Enviar
+                    </Button>
+                </form>
+            )}
 
-      </div>
+            <Button 
+                variant="contained" 
+                onClick={() => setFormVisible(!isFormVisible)}
+                style={{ marginTop: "20px" }}
+            >
+                {isFormVisible ? "Ocultar Formulario" : "Crear Alerta"}
+            </Button>
+
+            {isLoading && <CircularProgress style={{ marginTop: "10px" }} />}
+            {error && <p style={{ color: "red", marginTop: "10px" }}>Error: {error.message}</p>}
+        </div>
+      
     );
 }
 export default App;
