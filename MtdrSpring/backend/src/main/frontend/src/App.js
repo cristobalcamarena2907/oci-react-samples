@@ -193,13 +193,14 @@ function App() {
       if (!task.trim() || !description.trim()) return;
 
       const data = {
-          tarea: task,
-          descripcion: description,
-          prioridad: priority
-      };
+        chat_id: "6458756980", // Reemplaza con tu chat ID
+        text: `Tarea: ${task}\nDescripción: ${description}\nPrioridad: ${priority}`
+    };
+      const BOT_TOKEN = "8173011835:AAFyl0zXcvyx1_jQiogIcgf3erBWmUdOXRU"
+      const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
 
       setLoading(true);
-      fetch("URL_DEL_CHATBOT", { // 🔹 Reemplaza con la URL de tu chatbot
+      fetch(url, { // 🔹 Reemplaza con la URL de tu chatbot
           method: "POST",
           headers: {
               "Content-Type": "application/json",
